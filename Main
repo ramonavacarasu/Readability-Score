@@ -1,0 +1,173 @@
+package readability;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Scanner;
+
+public class Main {
+
+    static Scanner scanner = new Scanner(System.in);
+    static String input = null;
+
+    public static void main(String[] args) {
+
+        StringBuilder sb = new StringBuilder();
+
+        if (args.length > 0) {
+            File file = new File(args[0]);
+
+            try (Scanner scan = new Scanner(file)) {
+                while (scan.hasNext()) {
+                    sb.append(scan.nextLine()).append(" ");
+                }
+            } catch (FileNotFoundException e) {
+                System.out.println("No file found!");
+            }
+
+        } else {
+            while (scanner.hasNext()) {
+                sb.append(scanner.nextLine()).append(" ");
+            }
+        }
+
+        input = sb.toString();
+
+        String[] totalWords = input.split(" ");
+
+        String sentenceEnd = "[.!?]";
+        String[] sentences = input.split(sentenceEnd);
+
+        double countSentences = 0;
+        for (String sentence : sentences) {
+            if (!sentence.matches("[\\s]")) {
+                countSentences++;
+            }
+        }
+
+        String[] ch = input.split("");
+
+        double countChars = 0;
+        for (String x : ch) {
+            if (x.matches("[^\\s]")) {
+                countChars++;
+            }
+        }
+
+        double automatedReadabilityIndex = 4.71 * countChars / totalWords.length +
+                0.5 * totalWords.length / countSentences - 21.43;
+
+        double fleschKincaid = 0.39 * totalWords.length / countSentences + 11.8 * getSyllables() /
+                 totalWords.length - 15.59;
+
+        double gobbledygook = 1.043 * Math.sqrt(getPolysyllables() * 30 / countSentences) + 3.1291;
+
+        double averageCharPer100Words = 100 * countChars / totalWords.length;
+        double averageSentPer100Words = 100 * countSentences / totalWords.length;
+        double colemanLiau = 0.0588 * averageCharPer100Words - 0.296 *
+                averageSentPer100Words - 15.8;
+
+        System.out.println("Words: " + totalWords.length);
+        System.out.println("Sentences: " + (int) countSentences);
+        System.out.println("Characters: " + (int) countChars);
+        System.out.println("Syllables: " + getSyllables());
+        System.out.println("Polysyllables: " + getPolysyllables());
+
+        Map<Integer, Integer> scoreAge = new LinkedHashMap<>();
+
+        scoreAge.put(1, 6);
+        scoreAge.put(2, 7);
+        scoreAge.put(3, 9);
+        scoreAge.put(4, 10);
+        scoreAge.put(5, 11);
+        scoreAge.put(6, 12);
+        scoreAge.put(7, 13);
+        scoreAge.put(8, 14);
+        scoreAge.put(9, 15);
+        scoreAge.put(10, 16);
+        scoreAge.put(11, 17);
+        scoreAge.put(12, 18);
+        scoreAge.put(13, 23);
+        scoreAge.put(14, 24);
+        scoreAge.put(15, 24);
+
+        int scoreToInt = (int) Math.floor(automatedReadabilityIndex);
+        int scoreFK = (int) Math.floor(fleschKincaid);
+        int scoreGoble = (int) Math.floor(gobbledygook);
+        int scoreColeman = (int) Math.ceil(colemanLiau);
+
+
+        System.out.printf("Automated Readability Index: %.2f (about %d year olds).\n",
+                automatedReadabilityIndex, scoreAge.get(scoreToInt));
+
+        System.out.printf("Flesch–Kincaid readability tests: %.2f (about %d year olds).\n",
+                fleschKincaid, scoreAge.get(scoreFK));
+
+        System.out.printf("Simple Measure of Gobbledygook: %.2f (about %d year olds).\n",
+                gobbledygook, scoreAge.get(scoreGoble));
+
+        System.out.printf("Coleman–Liau index: %.2f (about %d year olds).\n",
+                colemanLiau, scoreAge.get(scoreColeman));
+
+        double averageAge = (scoreAge.get(scoreToInt) + scoreAge.get(scoreFK) + scoreAge.get(scoreGoble) +
+                scoreAge.get(scoreColeman)) / 4.0;
+        System.out.printf("This text should be understood in average by %.2f year olds.", averageAge);
+
+
+    }
+
+    public static int getSyllables() {
+
+        int syllables = 0;
+        String separateWords = "[\\s+]";
+        String[] words = input.split(separateWords);
+
+        for (String word : words) {
+            int currentSyllables = getSyllablesOfOneWord(word);
+            currentSyllables = currentSyllables > 0 ? currentSyllables : 1;
+            syllables += currentSyllables;
+        }
+        return syllables;
+    }
+
+    public static int getPolysyllables() {
+
+        int polysyllables = 0;
+        String separateWords = "[\\s+]";
+        String[] words = input.trim().split(separateWords);
+
+        for (String word : words) {
+            int currentPolysyllables = getSyllablesOfOneWord(word.trim());
+            currentPolysyllables = currentPolysyllables > 2 ? 1 : 0;
+            polysyllables += currentPolysyllables;
+        }
+        return polysyllables;
+    }
+
+    private static int getSyllablesOfOneWord(String word) {
+        String vowels = "aeiouy";
+
+        int syllables = 0;
+        boolean flag = false;
+
+        for (int i = 0; i < word.length(); i++) {
+            char currentChar = word.charAt(i);
+
+            if (i == word.length() - 1 && word.charAt(i) == 'e') {
+                break;
+            }
+            // the below if else ensure more than one consecutive vowels are counted as one syllable
+            if (vowels.indexOf(currentChar) >= 0) {
+                if (!flag) {
+                    syllables++;
+                }
+                flag = true;
+            } else {
+                flag = false;
+            }
+        }
+
+        return syllables;
+    }
+}
